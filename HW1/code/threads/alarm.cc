@@ -51,47 +51,55 @@ Alarm::CallBack()
 {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
-    
-    if (status == IdleMode) {	// is it time to quit?
+
+    //manage sleeping thread
+
+    bool woken = _sleepList.PutToReady();
+
+    if (status == IdleMode && !woken && _sleepList.IsEmpty()) {    // is it time to quit?
         if (!interrupt->AnyFutureInterrupts()) {
-	    timer->Disable();	// turn off the timer
-	}
-    } else {			// there's someone to preempt
-	interrupt->YieldOnReturn();
+            timer->Disable();       // turn off the timer
+        }
+    } else {                        // there's someone to preempt
+        interrupt->YieldOnReturn();
     }
 }
 
 //----------------------------------------------------------------------
-// Alarm::WaitUntil
-//      Deal with Sleep system call.
+// sleepList::IsEmpty
 //----------------------------------------------------------------------
-void Alarm::WaitUntil(int x)
-{
-	kernel->scheduler->SetSleeping(x);
+bool
+sleepList::IsEmpty() {
+    return _threadlist.size() == 0;
 }
 
 //----------------------------------------------------------------------
-// Alarm::Callback
-//      The setting of alarm is making interrupt every 100 ticks,
-//	and call CallBack.
+// sleepList::PutToSleep
 //----------------------------------------------------------------------
-void 
-Alarm::CallBack() 
-{
-    //manage sleeping threads
-    bool slEmpty = kernel->scheduler->IsSleepingListEmpty();
-	kernel->scheduler->AlarmTicks();
+void
+sleepList::PutToSleep(Thread*t, int x) {
+    ASSERT(kernel->interrupt->getLevel() == IntOff);
+    _threadlist.push_back(sleepThread(t, _current_interrupt + x));
+    t->Sleep(false);
+}
 
-	Interrupt *interrupt = kernel->interrupt;
-	MachineStatus status = interrupt->getStatus();
-	if (status == IdleMode && slEmpty) {	// is it time to quit?
-	    if (!interrupt->AnyFutureInterrupts()) {
-	    	timer->Disable();	// turn off the timer
-		}
-	} else {			// there's someone to preempt
-	    if(kernel->scheduler->getSchedulerType() == SJF){
-	        return;
-	    }
-		interrupt->YieldOnReturn();
-	}
+//----------------------------------------------------------------------
+// sleepList::PutToReady
+//----------------------------------------------------------------------
+bool
+sleepList::PutToReady() {
+    bool woken = false;
+    _current_interrupt ++;
+    for(std::list<sleepThread>::iterator it = _threadlist.begin();
+        it != _threadlist.end(); ) {
+        if(_current_interrupt >= it->when) {
+            woken = true;
+            cout << "sleepList::PutToReady Thread woken" << endl;
+            kernel->scheduler->ReadyToRun(it->sleeper);
+            it = _threadlist.erase(it);
+        } else {
+            it++;
+        }
+    }
+    return woken;
 }
