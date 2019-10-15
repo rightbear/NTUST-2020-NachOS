@@ -185,42 +185,41 @@ Scheduler::Print()
     readyList->Apply(ThreadPrint);
 }
 
-/*
 //----------------------------------------------------------------------
-// Scheduler::SetSleeping
-//      Make proccessing thread temporarily sleep，and use sleepingList
-//      to record sleeping threads.
+// sleeoList::IsEmpty
 //----------------------------------------------------------------------
-void 
-Scheduler::SetSleeping(int sleepTime)
-{
-	kernel->interrupt->SetLevel(IntOff);
-	Thread* thread = kernel->currentThread;
-	sleepingList->Insert(SleepingThread(thread,sleepTime));
-	thread->Sleep(FALSE);
-	kernel->interrupt->SetLevel(IntOn);
+bool
+sleepList::IsEmpty() {
+    return _threadlist.size() == 0;
 }
 
 //----------------------------------------------------------------------
-// Scheduler::AlarmTicks
-//      Remind scheduler to decrease remainded sleeping times by 1,
-//      and schedule threads whose sleeping times turn to zero into
-//	readyList.
+// sleepList::PutToSleep
 //----------------------------------------------------------------------
-void 
-Scheduler::AlarmTicks()
-{
-	ListIterator<SleepingThread> iter(sleepingList);
-	for (; !iter.IsDone(); iter.Next()) {
-	    iter.Item().decreaseTime(1);
-	}	
-	while(!sleepingList->IsEmpty()){
-	    SleepingThread st = sleepingList->Front();
-	    if(st.getSleepTime() == 0){
-	        ReadyToRun(st.getThread());
-	        sleepingList->RemoveFront();
-	    }
-	    else { break; }
-	}
+void
+sleepList::PutToSleep(Thread*t, int x) {
+    ASSERT(kernel->interrupt->getLevel() == IntOff);
+    _threadlist.push_back(sleepThread(t, _current_interrupt + x));
+    t->Sleep(false);
 }
-*/
+
+//----------------------------------------------------------------------
+// sleepList::PutToReady
+//----------------------------------------------------------------------
+bool
+sleepList::PutToReady() {
+    bool woken = false;
+    _current_interrupt ++;
+    for(std::list<sleepThread>::iterator it = _threadlist.begin();
+        it != _threadlist.end(); ) {
+        if(_current_interrupt >= it->when) {
+            woken = true;
+            cout << "sleepList::PutToReady Thread woken" << endl;
+            kernel->scheduler->ReadyToRun(it->sleeper);
+            it = _threadlist.erase(it);
+        } else {
+            it++;
+        }
+    }
+    return woken;
+}
