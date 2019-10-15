@@ -66,6 +66,20 @@ Alarm::CallBack()
 }
 
 //----------------------------------------------------------------------
+// Alarm::WaitUntil
+//----------------------------------------------------------------------
+void
+Alarm::WaitUntil(int x) {
+    //關中斷
+    IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
+    Thread* t = kernel->currentThread;
+    cout << "Alarm::WaitUntil go sleep" << endl;
+    _sleepList.PutToSleep(t, x);
+    //開中斷
+    kernel->interrupt->SetLevel(oldLevel);
+}
+
+//----------------------------------------------------------------------
 // sleepList::IsEmpty
 //----------------------------------------------------------------------
 bool

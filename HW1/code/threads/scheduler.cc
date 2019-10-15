@@ -185,6 +185,7 @@ Scheduler::Print()
     readyList->Apply(ThreadPrint);
 }
 
+/*
 //----------------------------------------------------------------------
 // Scheduler::SetSleeping
 //      Make proccessing thread temporarily sleep，and use sleepingList
@@ -222,3 +223,4 @@ Scheduler::AlarmTicks()
 	    else { break; }
 	}
 }
+*/
