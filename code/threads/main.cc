@@ -64,12 +64,11 @@ main(int argc, char **argv)
 	    ASSERT(i + 1 < argc);   // next argument is debug string
             debugArg = argv[i + 1];
 	    i++;
-	} else if (strcmp(argv[i], "-u") == 0) {
+        } else if (strcmp(argv[i], "-u") == 0) {
             cout << "Partial usage: nachos [-z -d debugFlags]\n";
-	} else if (strcmp(argv[i], "-z") == 0) {
+        } else if (strcmp(argv[i], "-z") == 0) {
             cout << copyright;
-	}
-
+        }
     }
     debug = new Debug(debugArg);
     

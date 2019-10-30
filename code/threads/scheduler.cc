@@ -24,6 +24,15 @@
 #include "main.h"
 
 //----------------------------------------------------------------------
+// Compare function
+//----------------------------------------------------------------------
+int PriorityCompare(Thread *a, Thread *b) {
+    if(a->getPriority() == b->getPriority())
+        return 0;
+    return a->getPriority() > b->getPriority() ? 1 : -1;
+}
+
+//----------------------------------------------------------------------
 // Scheduler::Scheduler
 // 	Initialize the list of ready but not running threads.
 //	Initially, no ready threads.
@@ -33,6 +42,26 @@ Scheduler::Scheduler()
 {
 //	schedulerType = type;
 	readyList = new List<Thread *>; 
+	Scheduler(RR);
+}
+
+Scheduler::Scheduler(SchedulerType type)
+{
+	schedulerType = type;
+	switch(schedulerType) {
+    	case RR:
+        	readyList = new List<Thread *>;
+        	break;
+    	case SJF:
+		/* todo */
+        	break;
+    	case Priority:
+		readyList = new SortedList<Thread *>(PriorityCompare);
+        	break;
+    	case FIFO:
+		/* todo */
+		break;
+   	}
 	toBeDestroyed = NULL;
 } 
 
