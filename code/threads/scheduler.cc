@@ -77,6 +77,8 @@ Scheduler::Scheduler(SchedulerType type)
         readyList = new SortedList<Thread *>(FIFOCompare);
 		/* todo */
 		break;
+        case SRTF:
+        readyList = new SortedList<Thread *>(SJFCompare);
    	}
 	toBeDestroyed = NULL;
 } 
