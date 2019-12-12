@@ -31,6 +31,20 @@ int PriorityCompare(Thread *a, Thread *b) {
         return 0;
     return a->getPriority() > b->getPriority() ? 1 : -1;
 }
+//----------------------------------------------------------------------
+// SJF function
+//----------------------------------------------------------------------
+int SJFCompare(Thread *a, Thread *b) {
+    if(a->getBurstTime() == b->getBurstTime())
+        return 0;
+    return a->getBurstTime() > b->getBurstTime() ? 1 : -1;
+}
+//----------------------------------------------------------------------
+// FIFO function
+//----------------------------------------------------------------------
+int FIFOCompare(Thread *a, Thread *b) {
+    return 1;
+}
 
 //----------------------------------------------------------------------
 // Scheduler::Scheduler
@@ -54,13 +68,17 @@ Scheduler::Scheduler(SchedulerType type)
         	break;
     	case SJF:
 		/* todo */
+        readyList = new SortedList<Thread *>(SJFCompare);
         	break;
     	case Priority:
 		readyList = new SortedList<Thread *>(PriorityCompare);
         	break;
     	case FIFO:
+        readyList = new SortedList<Thread *>(FIFOCompare);
 		/* todo */
 		break;
+        case SRTF:
+        readyList = new SortedList<Thread *>(SJFCompare);
    	}
 	toBeDestroyed = NULL;
 } 

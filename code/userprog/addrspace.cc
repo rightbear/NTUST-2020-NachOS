@@ -21,6 +21,11 @@
 #include "machine.h"
 #include "noff.h"
 
+#define PAGE_OCCU true
+#define PAGE_FREE false
+bool AddrSpace::PhyPageStatus[NumPhysPages] = {PAGE_FREE};
+int AddrSpace::NumFreePages = NumPhysPages;
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
@@ -53,6 +58,7 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace()
 {
+/*
     pageTable = new TranslationEntry[NumPhysPages];
     for (unsigned int i = 0; i < NumPhysPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
@@ -67,6 +73,7 @@ AddrSpace::AddrSpace()
     
     // zero out the entire address space
 //    bzero(kernel->machine->mainMemory, MemorySize);
+*/
 }
 
 //----------------------------------------------------------------------
@@ -76,6 +83,11 @@ AddrSpace::AddrSpace()
 
 AddrSpace::~AddrSpace()
 {
+   //釋放本程式佔用的實體頁
+    for(int i = 0; i < numPages; i++){
+        AddrSpace::PhyPageStatus[pageTable[i].physicalPage] = PAGE_FREE;
+        AddrSpace::NumFreePages++;
+    }
    delete pageTable;
 }
 
@@ -120,6 +132,23 @@ AddrSpace::Load(char *fileName)
 						// at least until we have
 						// virtual memory
 
+   
+   //進行分配
+    pageTable = new TranslationEntry[numPages];
+    for(unsigned int i = 0, idx = 0; i < numPages; i++) {
+        pageTable[i].virtualPage = i;
+        while(idx < NumPhysPages && AddrSpace::PhyPageStatus[idx] == PAGE_OCCU) idx++;
+        AddrSpace::PhyPageStatus[idx] = PAGE_OCCU;
+        AddrSpace::NumFreePages--;
+        //清空即將分配的 page
+        bzero(&kernel->machine->mainMemory[idx * PageSize], PageSize);
+        pageTable[i].physicalPage = idx;
+        pageTable[i].valid = true;
+        pageTable[i].use = false;
+        pageTable[i].dirty = false;
+        pageTable[i].readOnly = false;
+    }
+
     DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
 
 // then, copy in the code and data segments into memory
@@ -127,14 +156,14 @@ AddrSpace::Load(char *fileName)
         DEBUG(dbgAddr, "Initializing code segment.");
 	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
         	executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.code.virtualAddr]), 
+		&(kernel->machine->mainMemory[pageTable[noffH.code.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]), 
 			noffH.code.size, noffH.code.inFileAddr);
     }
 	if (noffH.initData.size > 0) {
         DEBUG(dbgAddr, "Initializing data segment.");
 	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
         executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.initData.virtualAddr]),
+		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 
