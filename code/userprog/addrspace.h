@@ -29,6 +29,7 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+    int ID;
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -45,6 +46,8 @@ class AddrSpace {
     static bool PhyPageStatus[NumPhysPages];
 
     static int NumFreePages;
+    
+    bool pt_is_load;
 };
 
 #endif // ADDRSPACE_H

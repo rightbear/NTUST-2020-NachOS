@@ -58,6 +58,8 @@ UserProgKernel::Initialize()
 
     machine = new Machine(debugUserProg);
     fileSystem = new FileSystem();
+
+	vm_Disk = new SynchDisk("Virtual Disk");
 #ifdef FILESYS
     synchDisk = new SynchDisk("New SynchDisk");
 #endif // FILESYS
