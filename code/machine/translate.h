@@ -42,6 +42,8 @@ class TranslationEntry {
 			// page is modified.
     int ID;
 
+    bool reference_bit;
+
     unsigned int count = 0;
 };
 

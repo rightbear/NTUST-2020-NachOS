@@ -128,7 +128,7 @@ AddrSpace::Load(char *fileName)
 //	cout << "number of pages of " << fileName<< " is "<<numPages<<endl;
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    //ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
@@ -144,18 +144,18 @@ AddrSpace::Load(char *fileName)
         //清空即將分配的 page
     } */
 
-    DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
+    //DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
 
 // then, copy in the code and data segments into memory
 	if (noffH.code.size > 0) {
         /* DEBUG(dbgAddr, "Initializing code segment.");
 	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size); */
-        for (unsigned int i = 0; i < numPages; i++) {
+        for (int i = 0; i < numPages; i++) {
             unsigned j = 0;
-            while(kernel->machine->usedPhyPage[j] && numPages < NumPhysPages) j++;
+            while(kernel->machine->usedPhyPage[j] && j < NumPhysPages) j++;
 
             if (j < NumPhysPages) {
-                kernel->machine->usedPhyPage[j] = 1;
+                kernel->machine->usedPhyPage[j] = TRUE;
                 kernel->machine->PhyPageName[j] = ID;
                 kernel->machine->main_tab[j] = &pageTable[i];
                 pageTable[i].physicalPage = j;
@@ -165,7 +165,8 @@ AddrSpace::Load(char *fileName)
                 pageTable[i].readOnly = false;
                 // pageTable[i].reference_bit = false; // for a algorithm
                 pageTable[i].ID = ID;
-                pageTable[i].count ++;
+                pageTable[i].count++;
+                pageTable[i].reference_bit = false;
                 executable->ReadAt(
                 &(kernel->machine->mainMemory[j * PageSize]), 
                     PageSize, noffH.code.inFileAddr + i * PageSize);
@@ -176,7 +177,7 @@ AddrSpace::Load(char *fileName)
                 while(kernel->machine->usedVirPage[k]) k++;
 
                 kernel->machine->usedVirPage[k] = true;
-                pageTable[i].physicalPage = j;
+                pageTable[i].physicalPage = k;
                 pageTable[i].valid = true;
                 pageTable[i].use = false;
                 pageTable[i].dirty = false;
