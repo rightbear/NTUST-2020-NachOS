@@ -64,7 +64,7 @@ Alarm::CallBack()
         if(kernel->scheduler->getSchedulerType() == RR ||
                 kernel->scheduler->getSchedulerType() == Priority ||
                 kernel->scheduler->getSchedulerType() == SRTF) {
-                    cout << "=== interrupt->YieldOnReturn ===" << endl;
+                    //cout << "=== interrupt->YieldOnReturn ===" << endl;
             interrupt->YieldOnReturn();
         }
     }

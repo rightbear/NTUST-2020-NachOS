@@ -247,8 +247,8 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 			victim = 0;
 			for(int counter = 0 ; counter < 32 ; counter++){
 				if(min > pageTable[counter].count){
-					min = pageTable[ccount].count;
-					victim = ccount;
+					min = pageTable[counter].count;
+					victim = counter;
 				}
 			}
 			pageTable[victim].count++;
