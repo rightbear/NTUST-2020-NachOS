@@ -212,91 +212,93 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
     
     if (tlb == NULL) {		// => page table => vpn is index into table
-	if (vpn >= pageTableSize) {
-	    DEBUG(dbgAddr, "Illegal virtual page # " << virtAddr);
-	    return AddressErrorException;
-	} else if (!pageTable[vpn].valid) {
-	    //DEBUG(dbgAddr, "Invalid virtual page # " << virtAddr);
-		printf("Page Fault\n");
-		kernel->stats->numPageFaults++;
-		j = 0;
-		while(kernel->machine->usedPhyPage[j] != false && j < NumPhysPages) j++;
+		if (vpn >= pageTableSize) {
+			DEBUG(dbgAddr, "Illegal virtual page # " << virtAddr);
+			return AddressErrorException;
+		} 
+		else if (!pageTable[vpn].valid) {
+			//DEBUG(dbgAddr, "Invalid virtual page # " << virtAddr);
+			printf("Page Fault\n");
+			kernel->stats->numPageFaults++;
+			j = 0;
+			while(kernel->machine->usedPhyPage[j] != false && j < NumPhysPages) j++;
 
-		if(j<NumPhysPages){
-		    char *buf;
-			buf = new char[PageSize];
-			kernel->machine->usedPhyPage[j] = TRUE;
-			kernel->machine->PhyPageName[j] = pageTable[vpn].ID;
+			if(j<NumPhysPages){
+				char *buf;
+				buf = new char[PageSize];
+				kernel->machine->usedPhyPage[j] = true;
+				kernel->machine->PhyPageName[j] = pageTable[vpn].ID;
 
-			kernel->machine->main_tab[j] = &pageTable[vpn];
-			pageTable[vpn].physicalPage = j;
-			pageTable[vpn].valid = TRUE;
+				kernel->machine->main_tab[j] = &pageTable[vpn];
+				pageTable[vpn].physicalPage = j;
+				pageTable[vpn].valid = true;
 
-			kernel->vm_Disk->ReadSector(pageTable[vpn].virtualPage, buf);
-			bcopy(buf, &mainMemory[j * PageSize], PageSize);
-		}
-		else{
-			char *buf_1;
-			buf_1 = new char[PageSize];
-			char *buf_2;
-			buf_2 = new char[PageSize];
+				kernel->vm_Disk->ReadSector(pageTable[vpn].virtualPage, buf);
+				bcopy(buf, &mainMemory[j * PageSize], PageSize);
+			}
+			else{
+				char *buf_1;
+				buf_1 = new char[PageSize];
+				char *buf_2;
+				buf_2 = new char[PageSize];
 
-			//FIFO
-			victim = fifo % 32;
-			printf("NUmber = %d page swap out\n", victim);
+				//FIFO
+				victim = fifo % 32;
+				printf("NUmber = %d page swap out\n", victim);
 
-			//Get the page victim and save in the disk
-			bcopy(&mainMemory[victim * PageSize], buf_1, PageSize);
-			kernel->vm_Disk->ReadSector(pageTable[vpn].virtualPage, buf_2);
-			bcopy(buf_2, &mainMemory[victim * PageSize],PageSize);
-			kernel -> vm_Disk->WriteSector(pageTable[vpn].virtualPage, buf_1);
+				//Get the page victim and save in the disk
+				bcopy(&mainMemory[victim * PageSize], buf_1, PageSize);
+				kernel->vm_Disk->ReadSector(pageTable[vpn].virtualPage, buf_2);
+				printf("NUmber = %d read\n", vpn);
+				bcopy(buf_2, &mainMemory[victim * PageSize],PageSize);
+				kernel -> vm_Disk->WriteSector(pageTable[vpn].virtualPage, buf_1);
+				printf("NUmber = %d write\n", vpn);
+				main_tab[victim]->virtualPage = pageTable[vpn].virtualPage;
+				main_tab[victim]->valid = FALSE;
 
-			main_tab[victim]->virtualPage = pageTable[vpn].virtualPage;
-			main_tab[victim]->valid = FALSE;
-
-			//Save the page into the main memory
-			pageTable[vpn].valid = TRUE;
-			pageTable[vpn].physicalPage = victim;
-			kernel->machine->PhyPageName[victim] = pageTable[vpn].ID;
-			main_tab[victim] = &pageTable[vpn];
-			fifo = fifo + 1;
-			printf("Page replacement finished.\n");
-		}
-
+				//Save the page into the main memory
+				pageTable[vpn].valid = true;
+				pageTable[vpn].physicalPage = victim;
+				kernel->machine->PhyPageName[victim] = pageTable[vpn].ID;
+				main_tab[victim] = &pageTable[vpn];
+				fifo = fifo + 1;
+				printf("Page replacement finished.\n");
+			}
 	    //return PageFaultException;
-	}
-	entry = &pageTable[vpn];
-    } else {
+		}
+		entry = &pageTable[vpn];
+    } 
+	else {
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
 		entry = &tlb[i];			// FOUND!
 		break;
 	    }
-	if (entry == NULL) {				// not found
-    	    DEBUG(dbgAddr, "Invalid TLB entry for this virtual page!");
-    	    return PageFaultException;		// really, this is a TLB fault,
+		if (entry == NULL) {				// not found
+    		DEBUG(dbgAddr, "Invalid TLB entry for this virtual page!");
+    		return PageFaultException;		// really, this is a TLB fault,
 						// the page may be in memory,
 						// but not in the TLB
-	}
+		}
     }
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
-	DEBUG(dbgAddr, "Write to read-only page at " << virtAddr);
-	return ReadOnlyException;
+		DEBUG(dbgAddr, "Write to read-only page at " << virtAddr);
+		return ReadOnlyException;
     }
     pageFrame = entry->physicalPage;
 
     // if the pageFrame is too big, there is something really wrong! 
     // An invalid translation was loaded into the page table or TLB. 
     if (pageFrame >= NumPhysPages) { 
-	DEBUG(dbgAddr, "Illegal pageframe " << pageFrame);
-	return BusErrorException;
+		DEBUG(dbgAddr, "Illegal pageframe " << pageFrame);
+		return BusErrorException;
     }
     entry->use = TRUE;		// set the use, dirty bits
-    if (writing)
-	entry->dirty = TRUE;
+    if (writing){entry->dirty = TRUE;}
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG(dbgAddr, "phys addr = " << *physAddr);
     return NoException;
 }
+

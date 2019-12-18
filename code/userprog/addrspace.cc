@@ -58,7 +58,8 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace()
 {
-    ID = ++(kernel->machine->ID_num);
+    ID = (kernel->machine->ID_num)++;
+    kernel->machine->ID_num = kernel->machine->ID_num + 1;
 /*
     pageTable = new TranslationEntry[NumPhysPages];
     for (unsigned int i = 0; i < NumPhysPages; i++) {
@@ -108,7 +109,8 @@ AddrSpace::Load(char *fileName)
 {
     OpenFile *executable = kernel->fileSystem->Open(fileName);
     NoffHeader noffH;
-    unsigned int size, k;
+    unsigned int size;
+    unsigned int  k;
 
     if (executable == NULL) {
 	cerr << "Unable to open file " << fileName << "\n";
@@ -152,10 +154,10 @@ AddrSpace::Load(char *fileName)
 	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size); */
         for (int i = 0; i < numPages; i++) {
             unsigned j = 0;
-            while(kernel->machine->usedPhyPage[j] && j < NumPhysPages) j++;
+            while(kernel->machine->usedPhyPage[j] != false && j < NumPhysPages) j++;
 
             if (j < NumPhysPages) {
-                kernel->machine->usedPhyPage[j] = TRUE;
+                kernel->machine->usedPhyPage[j] = true;
                 kernel->machine->PhyPageName[j] = ID;
                 kernel->machine->main_tab[j] = &pageTable[i];
                 pageTable[i].physicalPage = j;
@@ -169,21 +171,23 @@ AddrSpace::Load(char *fileName)
                 pageTable[i].reference_bit = false;
                 executable->ReadAt(
                 &(kernel->machine->mainMemory[j * PageSize]), 
-                    PageSize, noffH.code.inFileAddr + i * PageSize);
-            } else {
+                    PageSize, noffH.code.inFileAddr + (i * PageSize));
+            } 
+            
+            else {
                 char* buf;
                 buf = new char[PageSize];
                 k = 0;
-                while(kernel->machine->usedVirPage[k]) k++;
+                while(kernel->machine->usedVirPage[k] != false) k++;
 
                 kernel->machine->usedVirPage[k] = true;
-                pageTable[i].physicalPage = k;
-                pageTable[i].valid = true;
+                pageTable[i].virtualPage = k;
+                pageTable[i].valid = false;
                 pageTable[i].use = false;
                 pageTable[i].dirty = false;
                 pageTable[i].readOnly = false;
                 pageTable[i].ID = ID;
-                executable->ReadAt(buf, PageSize, noffH.code.inFileAddr + i * PageSize);
+                executable->ReadAt(buf, PageSize, noffH.code.inFileAddr + (i * PageSize));
                 kernel->vm_Disk->WriteSector(k, buf);
             }
         }
@@ -193,7 +197,7 @@ AddrSpace::Load(char *fileName)
         /* DEBUG(dbgAddr, "Initializing data segment.");
 	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size); */
         executable->ReadAt(
-		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]),
+		&(kernel->machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 
@@ -273,9 +277,10 @@ AddrSpace::InitRegisters()
 
 void AddrSpace::SaveState() 
 {
-    if (!pt_is_load) return;
+    if (pt_is_load){
         pageTable=kernel->machine->pageTable;
         numPages=kernel->machine->pageTableSize;
+    }
 }
 
 //----------------------------------------------------------------------
